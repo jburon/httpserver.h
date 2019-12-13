@@ -491,7 +491,9 @@ void http_listen(http_server_t* serv) {
   fcntl(serv->socket, F_SETFL, flags | O_NONBLOCK);
   listen(serv->socket, 128);
 }
-
+#ifdef FUZZ_CLIENT_SOCKET
+#define read(x,y,z) fuzz_read_socket(x, y, z)
+#endif
 int read_client_socket(http_request_t* session) {
   if (!session->buf) {
     session->buf = malloc(BUF_SIZE);
@@ -516,7 +518,13 @@ int read_client_socket(http_request_t* session) {
   } while (bytes > 0);
   return bytes == 0 ? 0 : 1;
 }
+#ifdef FUZZ_CLIENT_SOCKET
+#undef read
+#endif
 
+#ifdef FUZZ_CLIENT_SOCKET
+int write_client_socket(http_request_t* session);
+#else
 int write_client_socket(http_request_t* session) {
   int bytes = write(
     session->socket,
@@ -526,6 +534,7 @@ int write_client_socket(http_request_t* session) {
   if (bytes > 0) session->bytes += bytes;
   return errno == EPIPE ? 0 : 1;
 }
+#endif
 
 void free_buffer(http_request_t* session) {
   if (session->buf) {
