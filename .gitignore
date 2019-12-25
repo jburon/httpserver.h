@@ -1,5 +1,5 @@
 src/http_server.c
 corc
 http-server
-request
+fuzz_cli
 build/
